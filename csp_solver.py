@@ -1,24 +1,5 @@
 
-def variablesNeededForConstraint(constraint):
-    """Checks # of different variables needed for a constraint"""
-    xInd = constraint.split()
-    xArr=[]
-    for items in xInd:
-        if 'X' in items:
-            xArr.append(items)
-    for items in xArr:
-        if xArr.count(items) > 1:
-            xArr.remove(items)
-
-    def getVarForConstraint(constraint):
-        return xArr
-
-    return len(xArr)
-
-def checkConstraint(constraint):
-    varNum = variablesNeededForConstraint(constraint)
-
-
+#------------------------------------------------------------#------------------------------------------------------------
 
 def importCSP(filename):
     """Creates the CSP from text file."""
@@ -62,12 +43,10 @@ def getDomain(dataList):
     return domDic
 def getConstraint(dataList):
     #Creates a dictionary for constraints. "constraint" : # of variables needed for constraint
-    conDic={}
     conArray = dataList[1:] 
-    for con in conArray:
-        conDic[con] = variablesNeededForConstraint(con)
-    
-    return conDic
+    for line in conArray:
+        getConRel(line)
+
 
     #create and set values to CSP
     # csp = CSP()
@@ -76,14 +55,68 @@ def getConstraint(dataList):
     # csp.neighbors = None
     # csp.constraints = conArray
     # csp.assignment = {}
-    
-class CSP():
-    def __init__(self, vars, domains, neighbors, constraints, assignment):
+#------------------------------------------------------------#------------------------------------------------------------
+#  get relevant variables and expression CONSTRAINT
+def variablesNeededForConstraint(constraint):
+    """Checks # of different variables needed for a constraint"""
+    xInd = constraint.split()
+    xArr=[]
+    for items in xInd:
+        if 'X' in items:
+            xArr.append(items)
+    for items in xArr:
+        if xArr.count(items) > 1:
+            xArr.remove(items)
 
-        vars = vars
-        domains = domains
-        neighbors = neighbors
-        constraints = constraints
+    return len(xArr)
+
+
+def getConRel(constraintStr):
+    constraint = constraintStr.split()
+    constraintVarNum = []
+    #set stuff
+    firstCoeff = constraint[0]
+    firstVar = constraint[2]
+    firstVarNum = int(firstVar[1])
+    addNum = constraint[4]
+    exp = constraint[5]
+    secondVar = constraint[6]
+    secondVarNum = None
+    constraintVarNum.append(firstVarNum)
+
+    #"Rel is either ==, !=, <=, >=, <, or > and Var_Or_Integer is either a variable or an integer."
+    relDic = {
+        '==' : int.__eq__,
+        '!=' : int.__ne__,
+        '<=' : int.__le__,
+        '>-' : int.__ge__,
+        '<' : int.__lt__,
+        '>' : int.__gt__
+    }
+
+    if secondVar[0] == 'X':
+        secondVarNum = int(secondVar[1])
+        constraintVarNum.append(secondVarNum)
+        ###check THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        rel = lambda firstX, secX: relDic[exp](firstCoeff * firstX + addNum , secX)
+    else:
+        #then there is only one X, and last num is just an int
+        conInt = int(constraint[6])
+        rel = lambda firstX: relDic[exp](firstCoeff * firstX + addNum, conInt)
+    
+    return constraintVarNum, rel
+
+
+
+#10/31 did constraintRel and CSP arguments --> not sure about assignment still
+
+#------------------------------------------------------------#------------------------------------------------------------
+class CSP():
+    def __init__(self, numVar, domains, neighbors, constraints, assignment):
+
+        numVar = 0
+        domains = []
+        constraints = []
         assignment = assignment
 
     def assign(var, val, assignment):
@@ -100,7 +133,7 @@ class CSP():
         
         return count_if(conflict, self.neighbors[var])
 
-
+#------------------------------------------------------------#------------------------------------------------------------
 def numOfLegalVal(csp, var, assignment):
     """Determines the number of legal values that a variable can have."""
     if csp.currDomains:
@@ -114,7 +147,7 @@ def count_if(cond, list):
     return sum(1 for item in list if cond(item))
 
  
-
+#------------------------------------------------------------#------------------------------------------------------------
 
 def backtracking_search(csp): 
     """Main backtracking search that will be used with CSP."""
@@ -195,7 +228,7 @@ def order_domain_values(var, assignment, csp):
         yield domain.pop()
          
 
-
+#------------------------------------------------------------#------------------------------------------------------------
 
 def main():
     data = importCSP("problem_filename.txt")
