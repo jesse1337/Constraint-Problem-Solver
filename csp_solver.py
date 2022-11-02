@@ -10,41 +10,9 @@ def importCSP(filename):
     my_file.close()
 
     return dataList
-    
-    print("Constraints are: ", getConstraint(dataList))
 
 def getDomain(dataList):
     return dataList[0].split(':')
-    #Creates dictionary for domains. "X" : Domain of X
-    # domLine = dataList[0].split(':')
-    # domLen = len(domLine)
-    # domDic = {}
-
-    # x0dom = []
-    # i = 0
-    # while i < (int(domLine[0])):
-    #     x0dom.append(i)
-    #     i+=1
-
-    # x1dom = []
-    # i = 0
-    # while i < (int(domLine[1])):
-    #     x1dom.append(i)
-    #     i+=1
-    
-    # domDic = {"X0": x0dom, "X1": x1dom
-    # }
-
-    # if domLen > 2:
-    #     xndom = []
-    #     i = 0
-    #     while i < (int(domLine[2])):
-    #         xndom.append(i)
-    #         i+=1
-    #     domDic["X_N"] = xndom
-    
-    # return domDic
-
 
 def getConstraint(dataList):
     #Creates a dictionary for constraints. "constraint" : # of variables needed for constraint
@@ -88,35 +56,6 @@ def getConRel(constraintStr):
         rel = lambda firstX: relDic[exp](firstCoeff * firstX + addNum, conInt)
     
     return constraintVarNum, rel
-
-
-    #create and set values to CSP
-    # csp = CSP()
-    # csp.vars = max(conDic.keys())
-    # csp.domains = domDic
-    # csp.neighbors = None
-    # csp.constraints = conArray
-#     # csp.assignment = {}
-# #------------------------------------------------------------#------------------------------------------------------------
-# #  get relevant variables and expression CONSTRAINT
-# def variablesNeededForConstraint(constraint):
-#     """Checks # of different variables needed for a constraint"""
-#     xInd = constraint.split()
-#     xArr=[]
-#     for items in xInd:
-#         if 'X' in items:
-#             xArr.append(items)
-#     for items in xArr:
-#         if xArr.count(items) > 1:
-#             xArr.remove(items)
-
-#     return len(xArr)
-
-
-
-#10/31 did constraintRel and CSP arguments --> not sure about assignment still
-
-
 
 #------------------------------------------------------------#------------------------------------------------------------
 class CSP():
@@ -163,44 +102,6 @@ class CSP():
         
         return conflict
 
-
-    def ac_3(self):
-        tempDom = self.domains
-        for con in self.constraints:
-            if len(con[0]) == 1:
-                for x in tempDom[con[0][0]]:
-                    if not con[1](x):
-                        tempDom[con[0][0]].remove(x)
-        
-        queue = list(permutations(list(range(self.numVar)), 2))
-        while len(queue) != 0:
-            fX, sX = queue.pop(0)
-            ordDom = self.revise(fX, sX, tempDom)
-            if ordDom:
-                if len(tempDom[fX]) == 0:
-                    return False, tempDom
-                for k in [i for i in range(self.numVar) if i != fX]:
-                    queue.append((fX, k))
-
-    def revise(self, fX, sX, tempDom):    #domain copy is passed by reference
-            ordDom = False
-            # look for a constraint between xi and xj
-            confxsx = self.numConflicts(fX, sX)
-            if confxsx is None:
-                return False
-            # iterate over each value in the domain of xi, ex [0,1,2,3,4]
-            for x in tempDom[fX]:
-                # if there is no value x in domain Di of xj that allows (x,y) to satisfy the constraint between xi and xj
-                done = False
-                for y in tempDom[sX]:
-                    if confxsx[1](x,y):
-                        done = True
-                if not done:
-                    # delete x from Di
-                    tempDom[fX].remove(x)
-                    ordDom = True
-
-            return ordDom
 
 
 #------------------------------------------------------------#------------------------------------------------------------
@@ -258,10 +159,7 @@ def select_unassigned_variable(csp):
     for variable in csp.vars:
         if variable not in csp.assignment:
             unassigned.append(variable)
-    return unassigned[0]
-
-
-
+    
 
     # MRVar = None
     # numLegalVal = 1000000 #we want to choose var with least legal val, so start big
@@ -280,7 +178,7 @@ def select_unassigned_variable(csp):
     #     else:
     #         return unassigned[0]
     # return MRVar
-
+    return unassigned[0]
 def order_domain_values(var, assignment, csp):
     """Orders the values in the domain based on LCV."""
     # #implements least constrained value to order the domain
@@ -302,6 +200,41 @@ def order_domain_values(var, assignment, csp):
 
 #------------------------------------------------------------#------------------------------------------------------------
 #INFERENCES --> AC-3
+def ac_3(csp):
+        temp = csp.domains
+        for cons in csp.constraints:
+            if len(cons[0]) == 1:
+                for i in temp[cons[0][0]]:
+                    if not cons[1](i):
+                        temp[cons[0][0]].remove(i)
+
+
+        queue = list(permutations(list(range(csp.numVar)), 2))
+        while len(queue) != 0:
+            fX, sX = queue.pop(0)
+            ordered = revise(csp,fX, sX, temp)
+            if ordered:
+                if len(temp[fX]) == 0:
+                    return False, temp
+                for k in [i for i in range(csp.numVar) if i != fX]:
+                    queue.append((fX, k))
+
+        return temp
+def revise(csp, fX, sX, temp):
+        order = False
+        fsCon = csp.numConflicts(sX, fX)
+        if fsCon is None:
+            return False
+        for x in temp[fX]:
+            done = False
+            for y in temp[fX]:
+                if fsCon[1](x,y):
+                    done = True
+            if not done:
+                temp[fX].remove(x)
+                order = True
+
+        return order
 
 def main():
     file = sys.argv[-2]
@@ -310,6 +243,11 @@ def main():
     if forwardCheck == '0': forwardCheck = False
 
     csp = CSP(file, forwardCheck)
-    print(csp.ac_3())
+    print("Constraints: ", csp.constraints)
+    print("Domains: ", csp.domains)
+    print("numVar: ", csp.numVar)
+    print(ac_3(csp))
 
+    #11/2/2022
+    #did ac-3/inference/forward checking i guess? tomorrow: finish backtrack
 main()
