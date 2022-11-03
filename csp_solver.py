@@ -15,7 +15,6 @@ def getDomain(dataList):
     return dataList[0].split(':')
 
 def getConstraint(dataList):
-    #Creates a dictionary for constraints. "constraint" : # of variables needed for constraint
     conArray = dataList[1:] 
     for line in conArray:
         getConRel(line)
@@ -48,7 +47,6 @@ def getConRel(constraintStr):
     if secondVar[0] == 'X':
         secondVarNum = int(secondVar[1:])
         constraintVarNum.append(secondVarNum)
-        ###check THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         rel = lambda firstX, secX: relDic[exp](firstCoeff * firstX + addNum , secX)
     else:
         #then there is only one X, and last num is just an int
@@ -96,8 +94,7 @@ class CSP():
         #if there is no conflict (constraint violation), then we loop each constraint
         while conflict is None and count < len(self.constraints):
             #count each conflict found; set conflict so it doesn't loop more than it needs to
-            if fX in self.constraints[count][0] and sX in self.constraints[count][0]: 
-                conflict = self.constraints[count]
+            if fX in self.constraints[count][0] and sX in self.constraints[count][0]: conflict = self.constraints[count]
             count += 1
         
         return conflict
@@ -155,46 +152,46 @@ def select_unassigned_variable(csp):
     #implements MRV/MCV, and then degree heuristic for tiebreakers
 
     unassigned = []
-    #add all unassigned variables to unassigned[]
-    for variable in csp.vars:
-        if variable not in csp.assignment:
-            unassigned.append(variable)
+    # #add all unassigned variables to unassigned[]
+    # for variable in csp.vars:
+    #     if variable not in csp.assignment:
+    #         unassigned.append(variable)
     
 
-    # MRVar = None
-    # numLegalVal = 1000000 #we want to choose var with least legal val, so start big
-    # for unvar in unassigned:
-    #     legalComp = numLegalVal(csp, unvar, csp.assignment)
-    #     if legalComp < numLegalVal:
-    #         numLegalVal = legalComp
-    #         MRVar = unvar
-    #     #if tie, use degree heuristic
-    #     elif legalComp == numLegalVal:
-    #         numConflicts = csp.numConflicts(csp, unvar, unvar.keys(), unassigned)
-    #     if numConflicts > conf:
-    #         conf = numConflicts
-    #         MRVar = unvar
-    #     #if still tie, choose first unassigned var
-    #     else:
-    #         return unassigned[0]
-    # return MRVar
+    MRVar = None
+    numLegalVal = 1000000 #we want to choose var with least legal val, so start big
+    for unvar in unassigned:
+        legalComp = numLegalVal(csp, unvar, csp.assignment)
+        if legalComp < numLegalVal:
+            numLegalVal = legalComp
+            MRVar = unvar
+        #if tie, use degree heuristic
+        elif legalComp == numLegalVal:
+            numConflicts = csp.numConflicts(csp, unvar, unvar.keys(), unassigned)
+        if numConflicts > conf:
+            conf = numConflicts
+            MRVar = unvar
+        #if still tie, choose first unassigned var
+        else:
+            return unassigned[0]
+    return MRVar
     return unassigned[0]
 def order_domain_values(var, assignment, csp):
     """Orders the values in the domain based on LCV."""
-    # #implements least constrained value to order the domain
-    # #whichever domain has the least constraints eg. most values, then it is put first
-    # if csp.currDomains:
-    #     domain = csp.currDomain[var]
-    # else:
-    #     domain = csp.domains[var][:]
+    #implements least constrained value to order the domain
+    #whichever domain has the least constraints eg. most values, then it is put first
+    if csp.currDomains:
+        domain = csp.currDomain[var]
+    else:
+        domain = csp.domains[var][:]
     
-    # conf = 0
-    # for val in domain:
-    #     conf = csp.numConflicts(var, val, assignment)
-    #     domain.sort()
+    conf = 0
+    for val in domain:
+        conf = csp.numConflicts(var, val, assignment)
+        domain.sort()
     
-    # while domain:
-    #     yield domain.pop()
+    while domain:
+        yield domain.pop()
     
     return csp.domain
 
@@ -212,7 +209,7 @@ def ac_3(csp):
         queue = list(permutations(list(range(csp.numVar)), 2))
         while len(queue) != 0:
             fX, sX = queue.pop(0)
-            ordered = revise(csp,fX, sX, temp)
+            ordered = orderDom(csp,fX, sX, temp)
             if ordered:
                 if len(temp[fX]) == 0:
                     return False, temp
@@ -220,7 +217,8 @@ def ac_3(csp):
                     queue.append((fX, k))
 
         return temp
-def revise(csp, fX, sX, temp):
+
+def orderDom(csp, fX, sX, temp):
         order = False
         fsCon = csp.numConflicts(sX, fX)
         if fsCon is None:
@@ -243,11 +241,11 @@ def main():
     if forwardCheck == '0': forwardCheck = False
 
     csp = CSP(file, forwardCheck)
-    print("Constraints: ", csp.constraints)
     print("Domains: ", csp.domains)
-    print("numVar: ", csp.numVar)
-    print(ac_3(csp))
+    print("Solution: ", ac_3(csp))
+    
+    for arr in ac_3(csp):
+        if len(arr) == 0:
+            print("No Solution")
 
-    #11/2/2022
-    #did ac-3/inference/forward checking i guess? tomorrow: finish backtrack
 main()
